@@ -1,0 +1,5 @@
+---
+Name: multi-step-form
+---
+LeKoala\MultiStepForm\MultiStepForm:
+  include_css: true

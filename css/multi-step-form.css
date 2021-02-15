@@ -1,0 +1,16 @@
+.msf .btn-toolbar {
+    justify-content: center;
+}
+
+.msf .btn-toolbar .action {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+.msf-step-prev {
+    order: 1;
+}
+
+.msf-step-next {
+    order: 2;
+}
