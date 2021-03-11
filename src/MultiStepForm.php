@@ -18,7 +18,7 @@ use SilverStripe\View\Requirements;
 /**
  * Multi step form
  *
- * - Define a class name with a number in it (MyFormStep1)
+ * - Define a class name with a number in it (MyFormStep1) that extends this class
  * - Call definePrevNextActions instead of defining your actions
  * - Define a name in getStepTitle for a nicer name
  * - In your controller, create the form with classForCurrentStep
@@ -27,6 +27,11 @@ use SilverStripe\View\Requirements;
  */
 abstract class MultiStepForm extends Form
 {
+    private static $class_active = "current bg-primary text-white";
+    private static $class_inactive = "link";
+    private static $class_completed = "msf-completed bg-primary text-white";
+    private static $class_not_completed = "msf-not-completed bg-light text-muted";
+
     /**
      * @param RequestHandler $controller
      * @param mixed $name Extended to allow passing objects directly
@@ -57,6 +62,7 @@ abstract class MultiStepForm extends Form
         $this->setController($controller);
         $fields = $this->buildFields();
         $actions = $this->buildActions();
+        $validator = $this->buildValidator($fields);
         parent::__construct($controller, $name, $fields, $actions, $validator);
 
         if (self::config()->include_css) {
@@ -110,9 +116,10 @@ abstract class MultiStepForm extends Form
     }
 
     /**
+     * @param FieldList $fields
      * @return Validator
      */
-    protected function buildValidator()
+    protected function buildValidator(FieldList $fields)
     {
         return new RequiredFields;
     }
@@ -202,10 +209,11 @@ abstract class MultiStepForm extends Form
         $steps = new ArrayList();
 
         $baseAction = parent::FormAction();
+        $config = self::config();
 
         while (class_exists($class)) {
-            $isCurrent = $isCompleted = false;
-            $cssClass = $n == $curr ? 'current' : 'link';
+            $isCurrent = $isCompleted = $isNotCompleted = false;
+            $cssClass = $n == $curr ? $config->class_active : $config->class_inactive;
             if ($n == 1) {
                 $isCurrent = true;
                 $cssClass .= ' first';
@@ -215,21 +223,34 @@ abstract class MultiStepForm extends Form
             }
             if ($n < $curr) {
                 $isCompleted = true;
-                $cssClass .= ' completed';
+                $cssClass .= ' ' . $config->class_completed;
             }
-            $link = $baseAction . '/gotoStep/?step=' . $n;
+            if ($n > $curr) {
+                $isNotCompleted = true;
+                $cssClass .= ' ' . $config->class_not_completed;
+            }
+            $link = rtrim($baseAction, '/') . '/gotoStep/?step=' . $n;
             $steps->push(new ArrayData(array(
                 'Title' => $class::getStepTitle(),
                 'Number' => $n,
-                'Link' => $link,
+                'Link' => $isNotCompleted ? null : $link,
                 'Class' => $cssClass,
                 'IsCurrent' => $isCurrent,
                 'IsCompleted' => $isCompleted,
+                'isNotCompleted' => $isNotCompleted,
             )));
             $n++;
             $class = str_replace(self::classNameNumber(), $n, self::getClassWithoutNamespace());
         }
         return $steps;
+    }
+
+    /**
+     * @return DBHTMLText
+     */
+    public function DisplaySteps()
+    {
+        return $this->renderWith('MsfSteps');
     }
 
     /**
@@ -326,13 +347,12 @@ abstract class MultiStepForm extends Form
      */
     public function gotoStep($session)
     {
-        $step = $this->Controller()->getRequest()->getVar('step');
+        $step = $this->getController()->getRequest()->getVar('step');
         if ($step > 0 && $step <= self::getMaxStep($session)) {
             self::setCurrentStep($session, $step);
         }
-        return $this->Controller()->redirectBack();
+        return $this->getController()->redirectBack();
     }
-
 
     /**
      * Check if this is the last step
@@ -351,14 +371,6 @@ abstract class MultiStepForm extends Form
      * @return string
      */
     abstract public static function getStepTitle();
-
-    public function checkAccessAction($action)
-    {
-        if ($action === 'gotoStep') {
-            return true;
-        }
-        return parent::checkAccessAction($action);
-    }
 
     /**
      * A basic previous action that decrements the current step
@@ -436,5 +448,10 @@ abstract class MultiStepForm extends Form
     {
         self::clearCurrentStep($session);
         $session->clear(self::classNameWithoutNumber());
+    }
+
+    public function buildRequestHandler()
+    {
+        return new MultiStepFormRequestHandler($this);
     }
 }
