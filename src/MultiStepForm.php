@@ -15,6 +15,8 @@ use SilverStripe\View\Requirements;
 use SilverStripe\Control\Controller;
 use SilverStripe\Forms\RequiredFields;
 use SilverStripe\Control\RequestHandler;
+use SilverStripe\Forms\CompositeField;
+use SilverStripe\Forms\TextField;
 
 /**
  * Multi step form
@@ -335,7 +337,7 @@ abstract class MultiStepForm extends Form
             $i++;
             $stepClass = $class . $i;
         }
-        return $i--;
+        return --$i;
     }
 
     /**
@@ -468,7 +470,7 @@ abstract class MultiStepForm extends Form
      * @param boolean $merge Merge everything into a flat array (true by default) or return a multi dimensional array
      * @return array
      */
-    public function getAllDataFromSession($session, $merge = true)
+    public static function getAllDataFromSession($session, $merge = true)
     {
         $arr = [];
         $class = self::classNameWithoutNumber();
@@ -483,6 +485,45 @@ abstract class MultiStepForm extends Form
             }
         }
         return $arr;
+    }
+
+    /**
+     * Utility to quickly scaffold cms facing fields
+     *
+     * @param FieldList $fields
+     * @param array $data
+     * @return void
+     */
+    public static function getAsTabbedFields(FieldList $fields, $data = [])
+    {
+        $controller = Controller::curr();
+        $class = self::classNameWithoutNumber();
+        foreach (range(1, self::getStepsCount()) as $i) {
+            $classname = $class . $i;
+            $inst = new $classname($controller);
+
+            $stepFields = $inst->Fields();
+
+            foreach ($stepFields as $sf) {
+                $name = $sf->getName();
+
+                $sf->setReadonly(true);
+                if (!empty($data[$name])) {
+                    $sf->setValue($data[$name]);
+                }
+
+                if ($sf instanceof CompositeField) {
+                    foreach ($sf->getChildren() as $child) {
+                        $childName = $child->getName();
+                        if (!empty($data[$childName])) {
+                            $child->setValue($data[$childName]);
+                        }
+                    }
+                }
+
+                $fields->addFieldsToTab('Root.Step' . $i, $sf);
+            }
+        }
     }
 
     /**
