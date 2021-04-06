@@ -10,8 +10,6 @@ A simple alternative to [multiform](https://github.com/silverstripe/silverstripe
 
 This module does not require storage in the back end and provide a somewhat easier DX.
 
-STILL WORK IN PROGRESS
-
 ## How it works
 
 Each step of your form should be named the same.
@@ -53,6 +51,25 @@ public function MyForm()
     $class = MyFormStep1::classForCurrentStep($this);
     return new $class($this);
 }
+```
+
+## Template helpers
+
+You can display the steps using
+
+```
+$MyForm.DisplaySteps
+```
+
+This relies on some default styles that are added by default. You can disable styles and edit custom classes with:
+
+```yml
+LeKoala\MultiStepForm\MultiStepForm:
+  include_css: true
+  class_active: 'current bg-primary text-white'
+  class_inactive: 'link'
+  class_completed: 'msf-completed bg-primary text-white'
+  class_not_completed: 'msf-not-completed bg-light text-muted'
 ```
 
 ## TODO

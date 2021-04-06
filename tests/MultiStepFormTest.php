@@ -1,6 +1,6 @@
 <?php
 
-namespace LeKoala\CommonExtensions\Test;
+namespace LeKoala\MultiStepForm\Test;
 
 use SilverStripe\Dev\SapphireTest;
 

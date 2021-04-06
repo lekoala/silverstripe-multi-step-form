@@ -3,3 +3,7 @@ Name: multi-step-form
 ---
 LeKoala\MultiStepForm\MultiStepForm:
   include_css: true
+  class_active: 'current bg-primary text-white'
+  class_inactive: 'link'
+  class_completed: 'msf-completed bg-primary text-white'
+  class_not_completed: 'msf-not-completed bg-light text-muted'

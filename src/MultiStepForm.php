@@ -2,6 +2,7 @@
 
 namespace LeKoala\MultiStepForm;
 
+use Exception;
 use SilverStripe\Forms\Form;
 use InvalidArgumentException;
 use SilverStripe\ORM\ArrayList;
@@ -10,10 +11,10 @@ use SilverStripe\Control\Session;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\Validator;
 use SilverStripe\Forms\FormAction;
+use SilverStripe\View\Requirements;
 use SilverStripe\Control\Controller;
 use SilverStripe\Forms\RequiredFields;
 use SilverStripe\Control\RequestHandler;
-use SilverStripe\View\Requirements;
 
 /**
  * Multi step form
@@ -27,10 +28,13 @@ use SilverStripe\View\Requirements;
  */
 abstract class MultiStepForm extends Form
 {
+    private static $include_css = true;
     private static $class_active = "current bg-primary text-white";
     private static $class_inactive = "link";
     private static $class_completed = "msf-completed bg-primary text-white";
     private static $class_not_completed = "msf-not-completed bg-light text-muted";
+
+    protected $validationExemptActions = ["doPrev"];
 
     /**
      * @param RequestHandler $controller
@@ -68,6 +72,11 @@ abstract class MultiStepForm extends Form
         if (self::config()->include_css) {
             Requirements::css("lekoala/silverstripe-multi-step-form:css/multi-step-form.css");
         }
+
+        $data = $this->getDataFromSession($controller->getRequest()->getSession());
+        if (!empty($data)) {
+            $this->loadDataFrom($data);
+        }
     }
 
     /**
@@ -91,6 +100,8 @@ abstract class MultiStepForm extends Form
             $prevLabel = _t('MultiStepForm.doPrev', 'Previous');
             $actions->push($prev = new FormAction('doPrev', $prevLabel));
             $prev->setUseButtonTag(true);
+            // this must be supported by your validation client, it works with Zenvalidator
+            $prev->addExtraClass("ignore-validation");
             $prev->addExtraClass("msf-step-prev");
         }
 
@@ -303,10 +314,28 @@ abstract class MultiStepForm extends Form
     public static function setCurrentStep($session, $value)
     {
         $value = (int) $value;
+
+        // Track highest step for step navigation
         if ($value > self::getMaxStep($session)) {
             self::setMaxStep($session, $value);
         }
+
         $session->set(self::classNameWithoutNumber() . '.step', $value);
+    }
+
+    /**
+     * @return int
+     */
+    public static function getStepsCount()
+    {
+        $class = self::classNameWithoutNumber();
+        $i = 1;
+        $stepClass = $class . $i;
+        while (class_exists($stepClass)) {
+            $i++;
+            $stepClass = $class . $i;
+        }
+        return $i--;
     }
 
     /**
@@ -396,7 +425,11 @@ abstract class MultiStepForm extends Form
         self::incrementStep($session);
         $this->saveDataInSession($session);
 
-        // You will need to clear the current step and redirect to something else on the last step
+        if (self::isLastStep()) {
+            // You will need to clear the current step and redirect to something else on the last step
+            throw new Exception("Not implemented: please override doNext in your class");
+        }
+
         return  $controller->redirectBack();
     }
 
@@ -428,6 +461,28 @@ abstract class MultiStepForm extends Form
     public function getDataFromSession($session)
     {
         return $session->get(self::classNameWithoutNumber() . ".step_" . self::classNameNumber());
+    }
+
+    /**
+     * @param Session $session
+     * @param boolean $merge Merge everything into a flat array (true by default) or return a multi dimensional array
+     * @return array
+     */
+    public function getAllDataFromSession($session, $merge = true)
+    {
+        $arr = [];
+        $class = self::classNameWithoutNumber();
+        foreach (range(1, self::getStepsCount()) as $i) {
+            if ($merge) {
+                $step = $session->get($class . ".step_" . $i);
+                if ($step) {
+                    $arr = array_merge($arr, $step);
+                }
+            } else {
+                $arr[$i] = $session->get($class . ".step_" . $i);
+            }
+        }
+        return $arr;
     }
 
     /**
