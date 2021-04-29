@@ -467,7 +467,7 @@ abstract class MultiStepForm extends Form
         $data = $this->processData($data);
 
         self::incrementStep($session);
-        $this->clearTempDataInSession();
+        $this->clearTempDataFromSession($session);
         $this->saveDataInSession($session, $data);
 
         if (self::isLastStep()) {
