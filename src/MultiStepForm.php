@@ -83,10 +83,7 @@ abstract class MultiStepForm extends Form
         if (!empty($data)) {
             $this->loadDataFrom($data);
         } else {
-            $data = $this->getDataFromSession($session);
-            if (!empty($data)) {
-                $this->loadDataFrom($data);
-            }
+            $this->restoreData($session);
         }
     }
 
@@ -424,6 +421,20 @@ abstract class MultiStepForm extends Form
     }
 
     /**
+     * @param Session $session
+     * @return array
+     */
+    protected function restoreData(Session $session)
+    {
+        $data = $this->getDataFromSession($session);
+        if (!empty($data)) {
+            $this->loadDataFrom($data);
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Can be overwritten in child classes to apply custom step validation
      *
      * @throws ValidationException
@@ -565,9 +576,10 @@ abstract class MultiStepForm extends Form
      *
      * @param FieldList $fields
      * @param array $data
+     * @param array $ignore
      * @return void
      */
-    public static function getAsTabbedFields(FieldList $fields, $data = [])
+    public static function getAsTabbedFields(FieldList $fields, $data = [], $ignore = [])
     {
         $controller = Controller::curr();
         $class = self::classNameWithoutNumber();
@@ -579,6 +591,9 @@ abstract class MultiStepForm extends Form
 
             foreach ($stepFields as $sf) {
                 $name = $sf->getName();
+                if (in_array($name, $ignore)) {
+                    continue;
+                }
 
                 $sf->setReadonly(true);
                 if (!empty($data[$name])) {
@@ -588,6 +603,9 @@ abstract class MultiStepForm extends Form
                 if ($sf instanceof CompositeField) {
                     foreach ($sf->getChildren() as $child) {
                         $childName = $child->getName();
+                        if (in_array($childName, $ignore)) {
+                            continue;
+                        }
 
                         if (!empty($data[$childName])) {
                             $child->setValue($data[$childName]);
