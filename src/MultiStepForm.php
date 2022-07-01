@@ -510,7 +510,7 @@ abstract class MultiStepForm extends Form
 
         if (self::isLastStep()) {
             // You will need to clear the current step and redirect to something else on the last step
-            throw new Exception("Not implemented: please override doNext in your class");
+            throw new Exception("Not implemented: please override doNext in your class for last step");
         }
 
         return $controller->redirectBack();
