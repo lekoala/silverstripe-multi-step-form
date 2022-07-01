@@ -17,7 +17,6 @@ use SilverStripe\Forms\CompositeField;
 use SilverStripe\Forms\RequiredFields;
 use SilverStripe\Control\RequestHandler;
 use SilverStripe\ORM\ValidationException;
-use SilverStripe\ORM\ValidationResult;
 
 /**
  * Multi step form
@@ -76,14 +75,12 @@ abstract class MultiStepForm extends Form
             Requirements::css("lekoala/silverstripe-multi-step-form:css/multi-step-form.css");
         }
 
-        $session = $controller->getRequest()->getSession();
-
         // Loads first submitted data
-        $data = $this->getTempDataFromSession($session);
+        $data = $this->getTempDataFromSession();
         if (!empty($data)) {
             $this->loadDataFrom($data);
         } else {
-            $this->restoreData($session);
+            $this->restoreData();
         }
     }
 
@@ -195,7 +192,7 @@ abstract class MultiStepForm extends Form
         $step = 1;
 
         // Check session
-        $sessionStep = self::getCurrentStep($request->getSession());
+        $sessionStep = self::getCurrentStep();
         if ($sessionStep) {
             $step = $sessionStep;
         }
@@ -274,60 +271,59 @@ abstract class MultiStepForm extends Form
 
     /**
      * Clear current step
-     * @param Session $session
      * @return void
      */
-    public static function clearCurrentStep(Session $session)
+    public static function clearCurrentStep()
     {
-        return (int) $session->clear(self::classNameWithoutNumber() . '.step');
+        $session = self::getStaticSession();
+        $session->clear(self::classNameWithoutNumber() . '.step');
     }
 
     /**
      * Get current step (defined in session). 0 if not started yet.
-     * @param Session $session
      * @return int
      */
-    public static function getCurrentStep(Session $session)
+    public static function getCurrentStep()
     {
+        $session = self::getStaticSession();
         return (int) $session->get(self::classNameWithoutNumber() . '.step');
     }
 
     /**
      * Set max step
-     * @param Session $session
      * @param int $value
      * @return void
      */
-    public static function setMaxStep(Session $session, $value)
+    public static function setMaxStep($value)
     {
+        $session = self::getStaticSession();
         $session->set(self::classNameWithoutNumber() . '.maxStep', (int) $value);
     }
 
     /**
      * Get max step (defined in session). 0 if not started yet.
-     * @param Session $session
      * @return int
      */
-    public static function getMaxStep(Session $session)
+    public static function getMaxStep()
     {
+        $session = self::getStaticSession();
         return (int) $session->get(self::classNameWithoutNumber() . '.maxStep');
     }
 
     /**
      * Set current step
-     * @param Session $session
      * @param int $value
      * @return void
      */
-    public static function setCurrentStep(Session $session, $value)
+    public static function setCurrentStep($value)
     {
+        $session = self::getStaticSession();
         $value = (int) $value;
 
         // Track highest step for step navigation
-        if ($value > self::getMaxStep($session)) {
-            self::setMaxStep($session, $value);
+        if ($value > self::getMaxStep()) {
+            self::setMaxStep($value);
         }
-
         $session->set(self::classNameWithoutNumber() . '.step', $value);
     }
 
@@ -348,10 +344,9 @@ abstract class MultiStepForm extends Form
 
     /**
      * Increment step
-     * @param Session $session
      * @return string
      */
-    public static function incrementStep(Session $session)
+    public static function incrementStep()
     {
         if (self::isLastStep()) {
             return;
@@ -360,33 +355,32 @@ abstract class MultiStepForm extends Form
         if ($next == 1) {
             $next++;
         }
-        return self::setCurrentStep($session, $next);
+        return self::setCurrentStep($next);
     }
 
     /**
      * Decrement step
-     * @param Session $session
      * @return string
      */
-    public static function decrementStep(Session $session)
+    public static function decrementStep()
     {
+        $session = self::getStaticSession();
         $prev = self::classNameNumber() - 1;
         if ($prev < 1) {
             return;
         }
-        return self::setCurrentStep($session, $prev);
+        return self::setCurrentStep($prev);
     }
 
     /**
-     * Goto a step
-     * @param Session $session
+     * Go to a step
      * @return HTTPResponse
      */
-    public function gotoStep(Session $session)
+    public function gotoStep()
     {
         $step = $this->getController()->getRequest()->getVar('step');
-        if ($step > 0 && $step <= self::getMaxStep($session)) {
-            self::setCurrentStep($session, $step);
+        if ($step > 0 && $step <= self::getMaxStep()) {
+            self::setCurrentStep($step);
         }
         return $this->getController()->redirectBack();
     }
@@ -421,12 +415,11 @@ abstract class MultiStepForm extends Form
     }
 
     /**
-     * @param Session $session
      * @return array
      */
-    protected function restoreData(Session $session)
+    protected function restoreData()
     {
-        $data = $this->getDataFromSession($session);
+        $data = $this->getDataFromSession();
         if (!empty($data)) {
             $this->loadDataFrom($data);
             return true;
@@ -446,6 +439,29 @@ abstract class MultiStepForm extends Form
     }
 
     /**
+     * @return Session
+     */
+    public static function getStaticSession()
+    {
+        return Controller::curr()->getRequest()->getSession();
+    }
+
+    /**
+     * @param Controller $controller
+     * @return Session
+     */
+    public function getSession($controller = null)
+    {
+        if ($controller === null) {
+            $controller = $this->getController();
+        }
+        if ($controller) {
+            return $controller->getRequest()->getSession();
+        }
+        return self::getStaticSession();
+    }
+
+    /**
      * A basic previous action that decrements the current step
      * @param array $data
      * @return HTTPResponse
@@ -453,7 +469,7 @@ abstract class MultiStepForm extends Form
     public function doPrev($data)
     {
         $controller = $this->getController();
-        self::decrementStep($controller->getRequest()->getSession());
+        self::decrementStep($this->getSession());
         return $controller->redirectBack();
     }
 
@@ -470,16 +486,16 @@ abstract class MultiStepForm extends Form
         try {
             $this->validateData($data);
         } catch (ValidationException $ex) {
-            $this->saveTempDataInSession($session, $data);
+            $this->saveTempDataInSession($data);
             $this->sessionError($ex->getMessage());
             return $controller->redirectBack();
         }
 
         $data = $this->processData($data);
 
-        self::incrementStep($session);
-        $this->clearTempDataFromSession($session);
-        $this->saveDataInSession($session, $data);
+        self::incrementStep();
+        $this->clearTempDataFromSession();
+        $this->saveDataInSession($data);
 
         if (self::isLastStep()) {
             // You will need to clear the current step and redirect to something else on the last step
@@ -490,21 +506,21 @@ abstract class MultiStepForm extends Form
     }
 
     /**
-     * @param Session $session
      * @param int $step
      * @return array
      */
-    public static function getDataFromStep(Session $session, $step)
+    public static function getDataFromStep($step)
     {
+        $session = self::getStaticSession();
         return $session->get(self::classNameWithoutNumber() . ".step_" . $step);
     }
 
     /**
-     * @param Session $session
      * @param array $data
      */
-    public function saveDataInSession(Session $session, array $data = null)
+    public function saveDataInSession(array $data = null)
     {
+        $session = $this->getSession();
         if (!$data) {
             $data = $this->getData();
         }
@@ -515,11 +531,11 @@ abstract class MultiStepForm extends Form
     }
 
     /**
-     * @param Session $session
      * @param array $data
      */
-    public function saveTempDataInSession(Session $session, array $data = null)
+    public function saveTempDataInSession(array $data = null)
     {
+        $session = $this->getSession();
         if (!$data) {
             $data = $this->getData();
         }
@@ -530,32 +546,32 @@ abstract class MultiStepForm extends Form
     }
 
     /**
-     * @param Session $session
      * @return array
      */
-    public function getDataFromSession(Session $session)
+    public function getDataFromSession()
     {
+        $session = $this->getSession();
         return $session->get(self::classNameWithoutNumber() . ".step_" . self::classNameNumber());
     }
 
     /**
      * This is the data as submitted by the user
      *
-     * @param Session $session
      * @return array
      */
-    public function getTempDataFromSession(Session $session)
+    public function getTempDataFromSession()
     {
+        $session = $this->getSession();
         return $session->get(self::classNameWithoutNumber() . ".temp");
     }
 
     /**
-     * @param Session $session
      * @param boolean $merge Merge everything into a flat array (true by default) or return a multi dimensional array
      * @return array
      */
-    public static function getAllDataFromSession(Session $session, $merge = true)
+    public static function getAllDataFromSession($merge = true)
     {
+        $session = self::getStaticSession();
         $arr = [];
         $class = self::classNameWithoutNumber();
         foreach (range(1, self::getStepsCount()) as $i) {
@@ -619,32 +635,32 @@ abstract class MultiStepForm extends Form
     }
 
     /**
-     * @param Session $session
      * @param int $step
      * @return array
      */
-    public function clearTempDataFromSession(Session $session)
+    public function clearTempDataFromSession()
     {
+        $session = $this->getSession();
         return $session->clear(self::classNameWithoutNumber() . ".temp");
     }
 
     /**
-     * @param Session $session
      * @param int $step
      * @return array
      */
-    public function clearDataFromSession(Session $session)
+    public function clearDataFromSession()
     {
+        $session = $this->getSession();
         return $session->clear(self::classNameWithoutNumber() . ".step_" . self::classNameNumber());
     }
 
     /**
      * Clear all infos stored in the session from all steps
-     * @param Session $session
      */
-    public function clearAllDataFromSession(Session $session)
+    public function clearAllDataFromSession()
     {
-        self::clearCurrentStep($session);
+        $session = $this->getSession();
+        self::clearCurrentStep();
         $session->clear(self::classNameWithoutNumber());
     }
 

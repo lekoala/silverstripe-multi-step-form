@@ -2,7 +2,6 @@
 
 namespace LeKoala\MultiStepForm;
 
-use SilverStripe\Control\Controller;
 use SilverStripe\Forms\FormRequestHandler;
 
 class MultiStepFormRequestHandler extends FormRequestHandler
@@ -41,10 +40,6 @@ class MultiStepFormRequestHandler extends FormRequestHandler
      */
     public function gotoStep($request)
     {
-        if (!$request) {
-            $request = Controller::curr()->getRequest();
-        }
-        $session = $request->getSession();
-        return $this->form->gotoStep($session);
+        return $this->form->gotoStep();
     }
 }
