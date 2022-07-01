@@ -427,6 +427,12 @@ abstract class MultiStepForm extends Form
         return false;
     }
 
+
+    protected function persistData(array $data = [])
+    {
+        $this->saveDataInSession($data);
+    }
+
     /**
      * Can be overwritten in child classes to apply custom step validation
      *
@@ -481,7 +487,6 @@ abstract class MultiStepForm extends Form
     public function doNext($data)
     {
         $controller = $this->getController();
-        $session = $controller->getRequest()->getSession();
 
         try {
             $this->validateData($data);
@@ -495,7 +500,13 @@ abstract class MultiStepForm extends Form
 
         self::incrementStep();
         $this->clearTempDataFromSession();
-        $this->saveDataInSession($data);
+
+        try {
+            $this->persistData($data);
+        } catch (Exception $ex) {
+            $this->sessionError($ex->getMessage());
+            return $controller->redirectBack();
+        }
 
         if (self::isLastStep()) {
             // You will need to clear the current step and redirect to something else on the last step

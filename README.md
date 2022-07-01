@@ -14,14 +14,14 @@ This module does not require storage in the back end and provide a somewhat easi
 
 Each step of your form should be named the same.
 
-- MyFormStep1
-- MyFormStep2
-- ...
+-   MyFormStep1
+-   MyFormStep2
+-   ...
 
 They should all extends the base `MultiStepForm` class and implements the following abstract methods:
 
-- buildFields : returns a field list
-- getStepTitle : get the step title
+-   buildFields : returns a field list
+-   getStepTitle : get the step title
 
 ```php
 class MyFormStep1 extends MultiStepForm
@@ -65,17 +65,17 @@ This relies on some default styles that are added by default. You can disable st
 
 ```yml
 LeKoala\MultiStepForm\MultiStepForm:
-  include_css: true
-  class_active: 'current bg-primary text-white'
-  class_inactive: 'link'
-  class_completed: 'msf-completed bg-primary text-white'
-  class_not_completed: 'msf-not-completed bg-light text-muted'
+    include_css: true
+    class_active: "current bg-primary text-white"
+    class_inactive: "link"
+    class_completed: "msf-completed bg-primary text-white"
+    class_not_completed: "msf-not-completed bg-light text-muted"
 ```
 
 ## TODO
 
-- Doc
-- Tests
+-   Doc
+-   Tests
 
 ## Compatibility
 
