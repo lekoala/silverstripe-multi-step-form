@@ -197,7 +197,7 @@ abstract class MultiStepForm extends Form
             $step = $sessionStep;
         }
         // Override with step set manually
-        $requestStep = $request->getVar('step');
+        $requestStep = (int)$request->getVar('step');
         if ($requestStep) {
             $step = $requestStep;
         }
