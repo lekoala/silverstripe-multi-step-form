@@ -3,12 +3,14 @@
 namespace LeKoala\MultiStepForm;
 
 use Exception;
+use SilverStripe\Forms\Tab;
 use SilverStripe\Forms\Form;
 use InvalidArgumentException;
 use SilverStripe\ORM\ArrayList;
 use SilverStripe\View\ArrayData;
 use SilverStripe\Control\Session;
 use SilverStripe\Forms\FieldList;
+use SilverStripe\Forms\FormField;
 use SilverStripe\Forms\Validator;
 use SilverStripe\Forms\FormAction;
 use SilverStripe\View\Requirements;
@@ -616,6 +618,10 @@ abstract class MultiStepForm extends Form
 
             $stepFields = $inst->Fields();
 
+            $tab = new Tab('Step' . $i, $i . " - " . $inst->getStepTitle());
+            $fields->addFieldToTab('Root', $tab);
+
+            /** @var FormField $sf */
             foreach ($stepFields as $sf) {
                 $name = $sf->getName();
                 if (in_array($name, $ignore)) {
@@ -623,6 +629,7 @@ abstract class MultiStepForm extends Form
                 }
 
                 $sf->setReadonly(true);
+                // $sf->setDisabled(true);
                 if (!empty($data[$name])) {
                     $sf->setValue($data[$name]);
                 }
@@ -640,7 +647,7 @@ abstract class MultiStepForm extends Form
                     }
                 }
 
-                $fields->addFieldsToTab('Root.Step' . $i, $sf);
+                $tab->push($sf);
             }
         }
     }
