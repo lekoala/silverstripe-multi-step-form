@@ -18,12 +18,12 @@
         }
     ],
     "require": {
-        "php": ">=7.2",
-        "silverstripe/framework": "^4"
+        "php": "^7.4 || ^8",
+        "silverstripe/framework": "^4.4 || ^5"
     },
     "require-dev": {
-        "sminnee/phpunit": "^5.7",
-        "squizlabs/php_codesniffer": "^3.0"
+        "phpunit/phpunit": "^9.5",
+        "squizlabs/php_codesniffer": "^3.5"
     },
     "extra": {
         "installer-name": "multi-step-form",
