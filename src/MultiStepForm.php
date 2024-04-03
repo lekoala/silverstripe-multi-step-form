@@ -417,7 +417,7 @@ abstract class MultiStepForm extends Form
     }
 
     /**
-     * @return array
+     * @return bool
      */
     protected function restoreData()
     {
