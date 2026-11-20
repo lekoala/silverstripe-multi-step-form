@@ -7,7 +7,7 @@ use SilverStripe\Forms\Tab;
 use SilverStripe\Forms\Form;
 use InvalidArgumentException;
 use SilverStripe\Model\List\ArrayList;
-use SilverStripe\View\ArrayData;
+use SilverStripe\Model\ArrayData;
 use SilverStripe\Control\Session;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\FormField;
@@ -16,7 +16,7 @@ use SilverStripe\Forms\FormAction;
 use SilverStripe\View\Requirements;
 use SilverStripe\Control\Controller;
 use SilverStripe\Forms\CompositeField;
-use SilverStripe\Forms\RequiredFields;
+use SilverStripe\Forms\Validation\RequiredFieldsValidator as RequiredFields;
 use SilverStripe\Control\RequestHandler;
 use SilverStripe\Core\Validation\ValidationException;
 
